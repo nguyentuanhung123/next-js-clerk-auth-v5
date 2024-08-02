@@ -4,11 +4,10 @@ import "./globals.css";
 
 import {
   ClerkProvider,
-  SignInButton,
-  SignedIn,
-  SignedOut,
-  UserButton
+  ClerkLoaded,
+  ClerkLoading
 } from '@clerk/nextjs'
+import Navbar from "./components/Navbar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,14 +24,20 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <SignedOut>
-          <SignInButton />
-        </SignedOut>
-        <SignedIn>
-          <UserButton />
-        </SignedIn>
         <body className={inter.className}>
-          {children}
+          <ClerkLoading>
+            <div className="flex items-center justify-center h-screen text-2xl">
+              LOADING...
+            </div>
+          </ClerkLoading>
+          <ClerkLoaded>
+            <div className="max-w-6xl mx-auto">
+              <div className="flex flex-col h-screen">
+                <Navbar />
+                {children}
+              </div>
+            </div>
+          </ClerkLoaded>
         </body>
       </html>
     </ClerkProvider>
