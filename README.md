@@ -233,3 +233,86 @@ export default Profile
 
 ## Lưu ý: Ở Social Connection thì khi ta enable một mạng xã hội như google thì ở website ta sẽ phải refresh lại browser thì nút đăng nhập bằng google sẽ biến mất
 
+## Sử dụng middleware của Clerk để bảo vệ route của client page
+- Vấn đề : Khi chưa đăng nhập mà ta vào client page (http://localhost:3000/client) thì sẽ không hiện gì
+
+## clerkMiddleware()
+
+- Trình trợ giúp ClerkMiddleware() tích hợp xác thực Clerk vào ứng dụng Next.js của bạn thông qua Middleware. ClerkMiddleware() tương thích với cả App và Pages routers.
+
+## createRouteMatcher()
+- createRouteMatcher() là một hàm trợ giúp Clerk cho phép bạn bảo vệ nhiều route. createRouteMatcher() chấp nhận một loạt các route và kiểm tra xem route mà người dùng đang cố truy cập có khớp với một trong các route được truyền cho nó hay không. Các đường dẫn được cung cấp cho trình trợ giúp này có thể có cùng định dạng với các đường dẫn được cung cấp cho trình so khớp Middleware Tiếp theo.
+
+- Trình trợ giúp createRouteMatcher() trả về một hàm mà nếu được gọi với đối tượng req từ Middleware, hàm này sẽ trả về true nếu người dùng đang cố truy cập vào một tuyến đường khớp với một trong các tuyến đường được truyền tới createRouteMatcher().
+
+- Trong ví dụ sau, createRouteMatcher() đặt tất cả các tuyến /dashboard và /forum làm các tuyến được bảo vệ.
+
+```ts
+const isProtectedRoute = createRouteMatcher([
+  '/dashboard(.*)',
+  '/forum(.*)',
+]);
+```
+
+## Protect routes based on user authentication status (Bảo vệ các tuyến đường dựa trên trạng thái xác thực người dùng)
+
+- Bạn có thể bảo vệ các route dựa trên trạng thái xác thực người dùng bằng cách kiểm tra xem người dùng đã đăng nhập hay chưa.
+- Có hai phương pháp mà bạn có thể sử dụng:
+
++ Sử dụng auth().protect() nếu bạn muốn tự động chuyển hướng người dùng chưa được xác thực đến tuyến đăng nhập.
++ Sử dụng auth().userId nếu bạn muốn kiểm soát nhiều hơn những gì ứng dụng của bạn thực hiện dựa trên trạng thái xác thực người dùng.
+
+## Các bước chỉnh sửa middleware
+
+- B1: Sửa lại file middleware.ts
+
+- Ban đầu
+```ts
+import { clerkMiddleware } from "@clerk/nextjs/server";
+
+export default clerkMiddleware();
+
+export const config = {
+  matcher: [
+    // Skip Next.js internals and all static files, unless found in search params
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
+  ],
+};
+```
+
+- Sau khi sửa
+
+```ts
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+
+/**
+ * Bảo về route client do nó là client component
+ * Những cái khác đã được bảo vệ theo cách khác
+ */
+const isProtectedRoute = createRouteMatcher([
+  '/client'
+])
+
+/**
+ * Nếu người dùng chưa đăng nhập mà bấm nút để chuyển sang client page
+ * thì sẽ tự động chuyển hướng sang SignIn page
+ */
+export default clerkMiddleware((auth, req) => {
+  if(isProtectedRoute(req)) {
+    auth().protect();
+  }
+});
+
+export const config = {
+  matcher: [
+    // Skip Next.js internals and all static files, unless found in search params
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
+  ],
+};
+```
+
+

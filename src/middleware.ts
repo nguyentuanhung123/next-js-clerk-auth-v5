@@ -1,6 +1,22 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-export default clerkMiddleware();
+/**
+ * Bảo về route client do nó là client component
+ * Những cái khác đã được bảo vệ theo cách khác
+ */
+const isProtectedRoute = createRouteMatcher([
+  '/client'
+])
+
+/**
+ * Nếu người dùng chưa đăng nhập mà bấm nút để chuyển sang client page
+ * thì sẽ tự động chuyển hướng sang SignIn page
+ */
+export default clerkMiddleware((auth, req) => {
+  if(isProtectedRoute(req)) {
+    auth().protect();
+  }
+});
 
 export const config = {
   matcher: [
