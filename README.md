@@ -35,6 +35,18 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
 
+## file .env.local
+
+```jsx
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+
+MONGODB_URL=
+WEBHOOK_SECRET=
+```
+
 ## Giải thích về đoạn code
 
 ```jsx
@@ -314,5 +326,297 @@ export const config = {
   ],
 };
 ```
+
+## GET user data on API
+
+- B1: Tạo folder api và folder data bên trong nó
+- B2: Tạo file route.ts trong folder data
+
+```ts
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+
+export async function GET() {
+    const { userId } = auth();
+    const user = await currentUser();
+
+    return NextResponse.json(
+        {
+            message: 'Authenticated',
+            data: {
+                userId: userId,
+                username: user?.username
+            }
+        },
+        {
+            status: 200
+        }
+    )
+}
+```
+
+- B3: Sử dụng đường dẫn http://localhost:3000/api/data để xem data trả về dưới dạng JSON
+
+- Nếu người dùng đã đăng nhập
+
+```json
+{
+  "message": "Authenticated",
+  "data": {
+    "userId": "user_.......",
+    "username": "li....."
+  }
+}
+```
+
+- Nếu người dùng chưa đăng nhập
+
+```json
+{
+  "message": "Authenticated",
+  "data": {
+    "userId": null,
+  }
+}
+```
+
+- B4: Không được phép hiện như trên và phải bổ sung đoạn code bên dưới
+
+```ts
+if (!userId) {
+    return NextResponse.json(
+        {message: 'Not Authenticated'},{ status: 401 }
+    )
+}
+```
+
+## Client page và Profile page đều là các trang hiện thông tin cá nhân chỉ khác 1 cái là client component và 1 cái là server component
+
+## Kết nối mongodb và nếu người dùng tạo mới 1 user bằng clerk thì cũng sẽ được lưu trữ trong mongodb
+
+- npm i mongodb mongoose svix
+
+- Svix là một dịch vụ cung cấp giải pháp webhook cho các nhà phát triển. Webhooks là cơ chế cho phép ứng dụng gửi dữ liệu tới các dịch vụ khác khi có sự kiện xảy ra, và Svix giúp đơn giản hóa việc quản lý và bảo mật các webhook này.
+
+## Các bước cấu hình
+- B1: Tạo folder models bên trong thư mục gốc và file user.model.ts bên trong nó
+
+```ts
+import { Schema, model, models } from "mongoose";
+
+const UserSchema = new Schema({
+    clerkId: {
+        type: String,
+        required: true,  
+        unique: true
+    },
+    email: {
+        type: String,
+        required: true,
+    },
+    username: {
+        type: String,
+        required: true,
+    },
+    photo: {
+        type: String,
+        required: true,
+    },
+    firstName: {
+        type: String,
+    },
+    lastName: {
+        type: String,
+    }
+})
+
+const User = models?.User || model('User', UserSchema);
+
+export default User;
+```
+
+- B2: Bổ sung MONGODB_URL ở file .env.local : 
+
+- B3: Tạo file db.ts trong thư mục gốc
+
+```ts
+import mongoose, { Mongoose } from 'mongoose';
+
+const MONGODB_URL = process.env.MONGODB_URL!;
+
+interface MongooseConn {
+    conn: Mongoose | null;
+    promise: Promise<Mongoose> | null;
+}
+
+let cached: MongooseConn = (global as any).mongoose;
+
+if(!cached) {
+    cached = (global as any).mongoose = { 
+        conn: null, 
+        promise: null 
+    };
+}
+
+export const connect = async () => {
+    if(cached.conn) return cached.conn;
+
+    cached.promise =
+    cached.promise || mongoose.connect(MONGODB_URL, {
+        dbName: "clerkauthv5",
+        bufferCommands: false,
+        connectTimeoutMS: 30000
+    });
+
+    cached.conn = await cached.promise;
+
+    return cached.conn;
+}
+```
+
+- B4: Vào trang chủ của Clerk, ở sidebar Settings, ta enable Remove "Secured by Clerk" ... (Nếu muốn)
+
+- B5: Vào link https://clerk.com/docs/integrations/webhooks/sync-data (Webhook là một cơ chế cho phép một ứng dụng gửi dữ liệu đến một ứng dụng khác khi một sự kiện cụ thể xảy ra. Đây là một cách để các dịch vụ có thể "giao tiếp" với nhau mà không cần phải thường xuyên kiểm tra trạng thái của nhau (polling).) để xem thông tin
+
+- B6: Vào lại trang chủ của Clerk, ở sidebar chọn Webhooks,
+
+- B7: Chọn Add Endpoint, tích user created bên dưới (thêm user deleted và user updated nếu muốn)
+
+- B8: Tạo folder webhooks trong folder api
+
+- B9: Tạo folder clerk trong folder webhooks
+
+- B10: Ở Endpoint URl, bổ sung http://abcd.com/api/webhooks/cleck và bấm Create (Nếu máy không chấp nhận thì ta dùng url khác)
+
+- B11: Copy Signing Secret được tạo
+
+- B12: Copy và paste đoạn code vào file route.ts đã tạo trong folder cleck
+
+```ts
+import { Webhook } from 'svix'
+import { headers } from 'next/headers'
+import { WebhookEvent } from '@clerk/nextjs/server'
+
+export async function POST(req: Request) {
+
+  // You can find this in the Clerk Dashboard -> Webhooks -> choose the endpoint
+  const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET
+
+  if (!WEBHOOK_SECRET) {
+    throw new Error('Please add WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local')
+  }
+
+  // Get the headers
+  const headerPayload = headers();
+  const svix_id = headerPayload.get("svix-id");
+  const svix_timestamp = headerPayload.get("svix-timestamp");
+  const svix_signature = headerPayload.get("svix-signature");
+
+  // If there are no headers, error out
+  if (!svix_id || !svix_timestamp || !svix_signature) {
+    return new Response('Error occured -- no svix headers', {
+      status: 400
+    })
+  }
+
+  // Get the body
+  const payload = await req.json()
+  const body = JSON.stringify(payload);
+
+  // Create a new Svix instance with your secret.
+  const wh = new Webhook(WEBHOOK_SECRET);
+
+  let evt: WebhookEvent
+
+  // Verify the payload with the headers
+  try {
+    evt = wh.verify(body, {
+      "svix-id": svix_id,
+      "svix-timestamp": svix_timestamp,
+      "svix-signature": svix_signature,
+    }) as WebhookEvent
+  } catch (err) {
+    console.error('Error verifying webhook:', err);
+    return new Response('Error occured', {
+      status: 400
+    })
+  }
+
+  // Do something with the payload
+  // For this guide, you simply log the payload to the console
+  const { id } = evt.data;
+  const eventType = evt.type;
+
+  // Bổ sung đoạn này
+  if(eventType === "user.created") {
+    const {id, email_addresses, image_url, first_name, last_name, username} = evt.data
+
+    const user = {
+        clerkId: id,
+        email: email_addresses[0].email_address,
+        username: username!,
+        photo: image_url!,
+        first_name: first_name,
+        last_name: last_name
+    }
+
+    console.log(user);
+    
+  }
+  console.log(`Webhook with and ID of ${id} and type of ${eventType}`)
+  console.log('Webhook body:', body)
+
+  return new Response('', { status: 200 })
+}
+```
+
+- B13: Bổ sung WEBHOOK_SECRET trong file .env.local và Paste Signing Secret đã copy trước đó vào đây
+
+- B14: Tạo folder actions trong thư mục gốc và file user.action.ts bên trong nó
+
+```ts
+"use server";
+
+import User from "../models/user.model";
+import { connect } from "../db";
+
+export async function createUser(user: any) {
+    try {
+        await connect();
+        const newUser = new User(user);
+        return JSON.parse(JSON.stringify(newUser));
+    } catch(error) {
+        console.log(error);
+    }
+}
+```
+
+- B15: Bổ sung thêm bên trong file route.ts đã tạo trong folder cleck
+
+```ts
+// Bổ sung đoạn dưới để kết nối mongodb
+const newUser = await createUser(user);
+
+if(newUser) {
+    await clerkClient.users.updateUserMetadata(id, {
+        publicMetadata: {
+            userId: newUser._id
+        }
+    })
+}
+
+return NextResponse.json({
+    mesage: "New user created",
+    user: newUser
+});
+```
+
+- B16: Vào MongoDB, ở Sidebar chọn Network Access và bấm nút ADD IP ADDRESS
+
+- B17: Bấm nút Allow access anywhere ... đang được hiện
+
+
+
+
 
 
