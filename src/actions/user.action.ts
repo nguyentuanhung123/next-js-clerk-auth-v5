@@ -4,8 +4,8 @@ import User from "@/models/user.model";
 import { connect } from "@/db";
 
 export async function createUser(user: any) {
+    await connect();
     try {
-        await connect();
         const newUser = await User.create(user);
         return JSON.parse(JSON.stringify(newUser));
     } catch(error) {
