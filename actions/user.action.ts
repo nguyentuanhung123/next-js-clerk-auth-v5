@@ -6,7 +6,7 @@ import { connect } from "../db";
 export async function createUser(user: any) {
     try {
         await connect();
-        const newUser = new User(user);
+        const newUser = await User.create(user);
         return JSON.parse(JSON.stringify(newUser));
     } catch(error) {
         console.log(error);
