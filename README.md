@@ -486,7 +486,7 @@ export const connect = async () => {
 
 - B9: Tạo folder clerk trong folder webhooks
 
-- B10: Ở Endpoint URl, bổ sung http://abcd.com/api/webhooks/cleck và bấm Create (Nếu máy không chấp nhận thì ta dùng url khác)
+- B10: Ở Endpoint URl, bổ sung http://abcd.com/api/webhooks/cleck và bấm Create (Sẽ phải thay đổi url khi project được đẩy lên vercel)
 
 - B11: Copy Signing Secret được tạo
 
@@ -614,6 +614,37 @@ return NextResponse.json({
 - B16: Vào MongoDB, ở Sidebar chọn Network Access và bấm nút ADD IP ADDRESS
 
 - B17: Bấm nút Allow access anywhere ... đang được hiện
+
+## Lưu ý: Nếu ta xóa tài khoản user trong clerk và user đó đang đăng nhập thì có khả năng sẽ bị lỗi do bị chuyển hướng quá nhiều lần : Khắc phục bằng cách xóa hết cookies
+
+## Đẩy Project lên Vercel
+
+- B1: Vào vercel
+- B2: Import project
+- B3: Setup enviroment bằng cách paste các biến đã set trong file .env.local
+- B4: Bấm Deploy
+- B5: Vào Webhook của Clerk, ta phải thay url abcd.com ban đầu bằng 1 url thực tế (Xem ở B9)
+- B6: Vào Contine Dashboard của Vercel, bấm vào domain (Nếu nó hiện project là thành công)
+- B7: Copy đường link đang hiện trên tab
+- B8: Thay thế Endpoint (trong Dashboard Clerk) như đã nói ở B5, bấm Edit để sừa lại đường dẫn
+
+- Ban đầu
+
+```html
+http://abcd.com/api/webhooks/cleck
+```
+
+- Sau khi sửa
+
+```html
+https://next-js-clerk-auth-v5.vercel.app/api/webhooks/cleck
+```
+
+- B9: Bấm Save
+- B10: Xóa toàn bộ user ở clerk đã làm trước đó để kiểm tra tính đồng bộ
+
+## Lưu ý: Tên của database không nhất thiết phải trùng với tên project
+- Database ta đã đặt là: clerkauthv5 (xem trong db.ts)
 
 
 
