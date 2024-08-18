@@ -5,7 +5,9 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
  * Những cái khác đã được bảo vệ theo cách khác
  */
 const isProtectedRoute = createRouteMatcher([
-  '/client'
+  '/',
+  '/client',
+  '/cart'
 ])
 
 /**

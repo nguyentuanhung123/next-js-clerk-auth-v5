@@ -630,13 +630,13 @@ return NextResponse.json({
 - Ban đầu
 
 ```html
-http://abcd.com/api/webhooks/cleck
+http://abcd.com/api/webhooks/clerk
 ```
 
 - Sau khi sửa
 
 ```html
-https://next-js-clerk-auth-v5.vercel.app/api/webhooks/cleck
+https://next-js-clerk-auth-v5.vercel.app/api/webhooks/clerk
 ```
 
 - B9: Bấm Save
@@ -644,6 +644,29 @@ https://next-js-clerk-auth-v5.vercel.app/api/webhooks/cleck
 
 ## Lưu ý: Tên của database không nhất thiết phải trùng với tên project
 - Database ta đã đặt là: clerkauthv5 (xem trong db.ts)
+
+## Setup ngrok https://clerk.com/docs/integrations/webhooks/sync-data
+
+- Cách được khuyến nghị để đồng bộ hóa dữ liệu giữa Clerk và ứng dụng của bạn là sử dụng webhook.
+
+- Trong hướng dẫn này, bạn sẽ tìm hiểu cách tạo webhook Clerk trong ứng dụng Next.js của mình. Bạn sẽ lắng nghe sự kiện user.updated bằng cách tạo điểm cuối webhook trong Bảng điều khiển Clerk, tạo trình xử lý webhook trong ứng dụng Next.js của bạn. và thử nghiệm webhook cục bộ bằng ngrok và Clerk Dashboard.
+
+- Hướng dẫn này có thể được điều chỉnh để lắng nghe bất kỳ Clerk event nào.
+
+- B1: Vào link : https://ngrok.com/
+
+- B2: Các bước tiếp theo phải làm là set up môi trường (ta đã để file chính của trong ổ D và thư mục ngrok)
+
+- B3: Setup enviroment
+
+- Các bước còn lại xem trên Youtube
+
+## Chạy bằng ngrok:
+
+- B1: Mở CMD
+- b2: Gõ ngrok http 3000 (tùy thuộc đường link)
+
+## Nếu gặp lỗi Invalid Token: Thì xóa hết các giá trị trong cookies là được
 
 
 
